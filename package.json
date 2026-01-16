@@ -1,0 +1,27 @@
+{
+  "name": "projet-s6_back",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Noelie-Talhouarn/projet-S6_back.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Noelie-Talhouarn/projet-S6_back/issues"
+  },
+  "homepage": "https://github.com/Noelie-Talhouarn/projet-S6_back#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "mongoose": "^9.1.4"
+  }
+}
