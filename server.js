@@ -8,7 +8,11 @@ import gameRoutes from "./routes/games.js";
 
 
 
+import quoteRoutes from "./routes/quotes.js";
+
 dotenv.config();
+
+import usersRoutes from "./routes/users.js";
 
 const startServer = async () => {
   await connectDB();
@@ -17,6 +21,7 @@ const startServer = async () => {
   app.use(cors());
   app.use(express.json());
 
+  app.use("/api/users", usersRoutes);
 
 
   app.get("/", (req, res) => {
@@ -25,6 +30,7 @@ const startServer = async () => {
 
   app.use("/api/sparks", sparkRoutes);
   app.use("/api/games", gameRoutes);
+  app.use("/api/quotes", quoteRoutes);
 
   app.listen(process.env.PORT, () => {
     console.log(`🚀 Serveur lancé sur le port ${process.env.PORT}`);
