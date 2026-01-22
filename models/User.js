@@ -18,11 +18,33 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  // Avatar de l'utilisateur (URL ou chemin)
+  avatar: {
+    type: String,
+    default: '',
+  },
+  // Préférences utilisateur pour personnaliser l'expérience
+  preferences: {
+    notifications: {
+      type: Boolean,
+      default: true,
+    },
+    daily_quote: {
+      type: Boolean,
+      default: true,
+    },
+    dark_mode: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  // Ancienne préférence (conservée pour compatibilité)
   preferences_voyage: {
-    type: String, // Ou Array si tu préfères
+    type: String,
     default: null
   },
-  date_creation: {
+  // Date d'inscription de l'utilisateur
+  date_inscription: {
     type: Date,
     default: Date.now,
   },
