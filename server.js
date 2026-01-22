@@ -9,6 +9,7 @@ import quoteRoutes from "./routes/quotes.js";
 import usersRoutes from "./routes/users.js";
 import starRoutes from "./routes/stars.js";
 import cloudRoutes from "./routes/cloud.js";
+import meditationRoutes from "./routes/meditations.js";
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ const startServer = async () => {
   app.use("/api/quotes", quoteRoutes);
   app.use("/api/stars", starRoutes);
   app.use("/api/cloud-words", cloudRoutes);
+  app.use("/api/meditations", meditationRoutes);
 
   app.get("/", (req, res) => {
     res.send("API Étincelle OK ✨");
