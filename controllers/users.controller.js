@@ -216,6 +216,7 @@ export const deleteAccount = async (req, res) => {
     const Spark = (await import("../models/Spark.js")).default;
     const BreathingSession = (await import("../models/BreathingSession.js")).default;
     const GameProgress = (await import("../models/GameProgress.js")).default;
+    const Star = (await import("../models/Star.js")).default;
 
     // 1. Supprimer toutes les données associées à l'utilisateur
     console.log(`🗑️ Suppression des données pour l'utilisateur ${userId}...`);
@@ -231,6 +232,10 @@ export const deleteAccount = async (req, res) => {
     // Supprimer les progressions de jeux
     const deletedProgress = await GameProgress.deleteMany({ user: userId });
     console.log(`  ✓ ${deletedProgress.deletedCount} progressions de jeux supprimées`);
+
+    // Supprimer les étoiles (ciel étoilé)
+    const deletedStars = await Star.deleteMany({ user: userId });
+    console.log(`  ✓ ${deletedStars.deletedCount} étoiles supprimées`);
 
     // 2. Supprimer le compte utilisateur
     const deletedUser = await User.findByIdAndDelete(userId);
