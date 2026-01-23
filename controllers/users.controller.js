@@ -267,3 +267,41 @@ export const deleteAccount = async (req, res) => {
     res.status(500).json({ message: "Erreur lors de la suppression du compte", error: error.message });
   }
 };
+
+// --- GET MANDALA LEVEL ---
+export const getMandalaLevel = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('mandalaLevel');
+    if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
+
+    res.json({ level: user.mandalaLevel || 1 });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
+
+// --- UPDATE MANDALA LEVEL ---
+export const updateMandalaLevel = async (req, res) => {
+  try {
+    const { level } = req.body;
+
+    if (!level || typeof level !== 'number') {
+      return res.status(400).json({ message: "Le niveau doit être un nombre." });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
+
+    // On s'assure de ne pas rétrograder le niveau (sauf si c'est voulu ? ici je protège)
+    // Si tu veux permettre de rejouer des niveaux, tu peux enlever cette condition, 
+    // mais pour la "sauvegarde de progression", on veut souvent le niveau MAX atteint.
+    if (level > (user.mandalaLevel || 1)) {
+      user.mandalaLevel = level;
+      await user.save();
+    }
+
+    res.json({ message: "Progression sauvegardée", level: user.mandalaLevel });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};

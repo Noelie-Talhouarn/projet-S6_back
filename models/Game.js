@@ -9,7 +9,7 @@ const gameSchema = new mongoose.Schema({
     type: {
         type: String,
         required: true, // "coloriage", "rythme", "camera"
-        enum: ["coloriage", "rythme", "camera"],
+        enum: ["coloriage", "rythme", "camera", "puzzle"],
     },
     description: {
         type: String,

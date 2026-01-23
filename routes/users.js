@@ -6,7 +6,9 @@ import {
     updateProfile,
     getUserStats,
     updatePreferences,
-    deleteAccount
+    deleteAccount,
+    getMandalaLevel,
+    updateMandalaLevel
 } from '../controllers/users.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 
@@ -43,5 +45,11 @@ router.put('/preferences', authMiddleware, updatePreferences);
 
 // Route: /api/users/account - Supprimer le compte utilisateur (⚠️ Action irréversible)
 router.delete('/account', authMiddleware, deleteAccount);
+
+// Route: /api/users/mandala - Récupérer le niveau du mandala
+router.get('/mandala', authMiddleware, getMandalaLevel);
+
+// Route: /api/users/mandala - Sauvegarder le niveau du mandala
+router.post('/mandala', authMiddleware, updateMandalaLevel);
 
 export default router;
