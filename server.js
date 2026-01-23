@@ -10,11 +10,13 @@ import usersRoutes from "./routes/users.js";
 import starRoutes from "./routes/stars.js";
 import cloudRoutes from "./routes/cloud.js";
 import meditationRoutes from "./routes/meditations.js";
+import { seedGames } from "./utils/seedGames.js";
 
 dotenv.config();
 
 const startServer = async () => {
   await connectDB();
+  await seedGames(); // Initialiser les jeux par défaut
 
   const app = express();
   app.use(cors());

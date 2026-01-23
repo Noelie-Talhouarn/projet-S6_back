@@ -1,30 +1,13 @@
 import CloudWord from '../models/CloudWord.js';
 
 // Liste par défaut pour initialiser la base de données
-const DEFAULT_WORDS = [
-    "Espoir", "Lumière", "Force", "Amour", "Sérénité",
-    "Joie", "Confiance", "Paix", "Harmonie", "Rêve",
-    "Courage", "Gratitude", "Liberté", "Magie", "Douceur"
-];
-
 // --- GET CLOUD WORDS ---
 export const getCloudWords = async (req, res) => {
     try {
-        // 1. Vérifier si des mots existent déjà
-        const count = await CloudWord.countDocuments();
-
-        // 2. Si aucun mot n'existe, on initialise la base avec les mots par défaut
-        if (count === 0) {
-            console.log("☁️ Initialisation des mots du nuage...");
-            const wordsToInsert = DEFAULT_WORDS.map(word => ({ word }));
-            await CloudWord.insertMany(wordsToInsert);
-        }
-
-        // 3. Récupérer tous les mots de la base de données
+        // Récupérer tous les mots de la base de données
         const wordsDocs = await CloudWord.find().sort({ createdAt: -1 });
 
-        // 4. Extraire juste les chaînes de caractères pour renvoyer un tableau simple
-        // Exemple: ["Espoir", "Lumière", ...] au lieu de [{_id:..., word:"Espoir"}, ...]
+        // Extraire juste les chaînes de caractères
         const wordsList = wordsDocs.map(doc => doc.word);
 
         res.json(wordsList);
