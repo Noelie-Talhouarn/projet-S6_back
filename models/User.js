@@ -43,6 +43,11 @@ const UserSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  // Niveau de progression du jeu Mandala
+  mandalaLevel: {
+    type: Number,
+    default: 1
+  },
   // Date d'inscription de l'utilisateur
   date_inscription: {
     type: Date,
