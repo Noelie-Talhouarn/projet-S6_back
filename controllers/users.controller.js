@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import User from "../models/User.js";
+import { calculateBadges } from "../utils/badges.js";
 
 /**
  * Générer un JWT (L'étincelle de connexion)
@@ -117,59 +118,221 @@ export const updateProfile = async (req, res) => {
   }
 };
 
-// --- GET USER STATS ---
+// --- GET USER STATS (Dynamique) ---
 export const getUserStats = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Import des modèles nécessaires (dynamique pour éviter les dépendances circulaires)
+    // Import des modèles
     const Spark = (await import("../models/Spark.js")).default;
     const BreathingSession = (await import("../models/BreathingSession.js")).default;
     const GameProgress = (await import("../models/GameProgress.js")).default;
+    const Star = (await import("../models/Star.js")).default;
 
-    // 1. Compter les sparks (étincelles/notes quotidiennes)
-    const sparksCount = await Spark.countDocuments({ user: userId });
+    // --- 1. Calculer les statistiques globales (Total) ---
+    // On compte directement les documents en base, ce qui inclut tout l'historique
+    const globalStats = {
+      stars_count: await Star.countDocuments({ user: userId }),
+      breathing_sessions_count: await BreathingSession.countDocuments({ user: userId }),
+      games_played_count: await GameProgress.countDocuments({ user: userId, status: 'completed' }),
+      sparks_count: await Spark.countDocuments({ user: userId })
+    };
 
-    // 2. Compter les sessions de respiration
-    const breathingSessions = await BreathingSession.countDocuments({ user: userId });
+    // --- 2. Calculer les statistiques de la SEMAINE en cours ---
+    // Trouver le début de la semaine (Lundi à 00:00:00)
+    const now = new Date();
+    const startOfWeek = new Date(now);
 
-    // 3. Calculer le temps total de respiration (en minutes)
-    const breathingTimeResult = await BreathingSession.aggregate([
-      { $match: { user: new mongoose.Types.ObjectId(userId) } },
-      { $group: { _id: null, total: { $sum: "$duration" } } }
-    ]);
-    const totalBreathingTime = breathingTimeResult.length > 0 ? breathingTimeResult[0].total : 0;
+    // Obtenir le jour de la semaine (0 = Dimanche, 1 = Lundi, ..., 6 = Samedi)
+    const dayOfWeek = startOfWeek.getUTCDay();
 
-    // 4. Compter les jeux complétés
-    const gamesPlayed = await GameProgress.countDocuments({
+    // Calculer le nombre de jours à soustraire pour arriver au lundi
+    // Si on est dimanche (0), on recule de 6 jours
+    // Si on est lundi (1), on recule de 0 jours
+    // Si on est samedi (6), on recule de 5 jours
+    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+
+    // Reculer au lundi de cette semaine
+    startOfWeek.setUTCDate(startOfWeek.getUTCDate() - daysToSubtract);
+
+    // Mettre l'heure à 00:00:00.000 UTC
+    startOfWeek.setUTCHours(0, 0, 0, 0);
+
+    console.log('📅 Début de semaine calculé:', startOfWeek.toISOString());
+    console.log('📅 Date actuelle:', now.toISOString());
+
+    const weeklyStats = {
+      stars_count: await Star.countDocuments({ user: userId, createdAt: { $gte: startOfWeek } }),
+      breathing_sessions_count: await BreathingSession.countDocuments({ user: userId, createdAt: { $gte: startOfWeek } }),
+      games_played_count: await GameProgress.countDocuments({ user: userId, status: 'completed', lastPlayed: { $gte: startOfWeek } })
+    };
+
+    console.log('📊 Stats hebdomadaires:', weeklyStats);
+
+    // Vérifier les sessions de respiration de cette semaine
+    const weeklyBreathingSessions = await BreathingSession.find({
       user: userId,
-      status: 'completed'
-    });
+      createdAt: { $gte: startOfWeek }
+    }).select('createdAt duration type').lean();
 
-    // 5. Calculer les jours actifs (jours uniques avec au moins une activité)
+    console.log('🔍 Sessions de respiration cette semaine:', weeklyBreathingSessions);
+
+    // --- 3. Temps GLOBAUX (tout l'historique) ---
+    const timeStats = await BreathingSession.aggregate([
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
+      {
+        $group: {
+          _id: "$type",
+          totalTime: { $sum: "$duration" },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Extraction des temps spécifiques GLOBAUX
+    const coherenceStats = timeStats.find(s => s._id === 'coherence_cardiaque') || { totalTime: 0, count: 0 };
+    const meditationStats = timeStats.find(s => s._id === 'meditation') || { totalTime: 0, count: 0 };
+
+    // Total global (somme de TOUT le tableau)
+    const totalBreathingTime = timeStats.reduce((acc, curr) => acc + curr.totalTime, 0);
+
+    // --- 4. Temps HEBDOMADAIRES (semaine en cours uniquement) ---
+    const weeklyTimeStats = await BreathingSession.aggregate([
+      { $match: { user: new mongoose.Types.ObjectId(userId), createdAt: { $gte: startOfWeek } } },
+      {
+        $group: {
+          _id: "$type",
+          totalTime: { $sum: "$duration" },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Extraction des temps spécifiques HEBDO
+    const weeklyCoherenceStats = weeklyTimeStats.find(s => s._id === 'coherence_cardiaque') || { totalTime: 0, count: 0 };
+    const weeklyMeditationStats = weeklyTimeStats.find(s => s._id === 'meditation') || { totalTime: 0, count: 0 };
+
+    // Total hebdo (somme de TOUT le tableau)
+    const weeklyTotalBreathingTime = weeklyTimeStats.reduce((acc, curr) => acc + curr.totalTime, 0);
+
+    console.log("📊 Stats debug (global):", timeStats);
+    console.log("📊 Stats debug (hebdo):", weeklyTimeStats);
+    console.log("🔍 Cohérence cardiaque - Global:", coherenceStats.totalTime, "s | Hebdo:", weeklyCoherenceStats.totalTime, "s");
+    console.log("🔍 Méditation - Global:", meditationStats.totalTime, "s | Hebdo:", weeklyMeditationStats.totalTime, "s");
+
+    // Jours actifs
     const allActivities = await Promise.all([
       Spark.find({ user: userId }).select('createdAt').lean(),
       BreathingSession.find({ user: userId }).select('createdAt').lean(),
       GameProgress.find({ user: userId }).select('lastPlayed').lean(),
     ]);
 
-    // Extraire toutes les dates et les convertir en jours uniques
     const uniqueDays = new Set();
     allActivities.flat().forEach(activity => {
       const date = activity.createdAt || activity.lastPlayed;
-      if (date) {
-        const dayKey = new Date(date).toISOString().split('T')[0];
-        uniqueDays.add(dayKey);
-      }
+      if (date) uniqueDays.add(new Date(date).toISOString().split('T')[0]);
     });
 
-    res.json({
-      sparks_count: sparksCount,
-      breathing_sessions: breathingSessions,
-      total_breathing_time: totalBreathingTime,
-      games_played: gamesPlayed,
-      days_active: uniqueDays.size,
+    console.log('📅 Jours actifs détectés:', Array.from(uniqueDays));
+
+    // --- 4. Calculer le streak (série de jours consécutifs) ---
+    const sortedDays = Array.from(uniqueDays).sort().reverse(); // Trier du plus récent au plus ancien
+    let currentStreak = 0;
+
+    if (sortedDays.length > 0) {
+      // Utiliser UTC pour éviter les problèmes de timezone
+      const now = new Date();
+      const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+      const todayStr = today.toISOString().split('T')[0];
+
+      const yesterday = new Date(today);
+      yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+      console.log('🔍 Debug streak - Aujourd\'hui:', todayStr, '| Hier:', yesterdayStr);
+      console.log('🔍 Debug streak - Dernier jour actif:', sortedDays[0]);
+
+      // Vérifier si l'utilisateur a été actif aujourd'hui OU hier
+      // (Si on vérifie le soir, l'utilisateur peut ne pas avoir été actif aujourd'hui)
+      let checkDate;
+      if (sortedDays[0] === todayStr) {
+        checkDate = new Date(today);
+        currentStreak = 1;
+      } else if (sortedDays[0] === yesterdayStr) {
+        checkDate = new Date(yesterday);
+        currentStreak = 1;
+      } else {
+        // Le dernier jour actif est trop ancien, streak = 0
+        currentStreak = 0;
+      }
+
+      // Compter les jours consécutifs en remontant dans le temps
+      if (currentStreak > 0) {
+        for (let i = 1; i < sortedDays.length; i++) {
+          checkDate.setUTCDate(checkDate.getUTCDate() - 1);
+          const expectedDateStr = checkDate.toISOString().split('T')[0];
+
+          if (sortedDays[i] === expectedDateStr) {
+            currentStreak++;
+          } else {
+            // Jour manquant, on arrête le comptage
+            break;
+          }
+        }
+      }
+    }
+
+    console.log('🔥 Streak actuel:', currentStreak, 'jour(s)');
+
+    // --- 5. Calculer les badges débloqués ---
+    const badges = calculateBadges({
+      stars_count: globalStats.stars_count,
+      total_meditation_time: meditationStats.totalTime,
+      total_coherence_time: coherenceStats.totalTime
     });
+
+    console.log('🏆 Badges débloqués:', badges.total, '/', badges.totalPossible);
+
+    res.json({
+      // Global
+      sparks_count: globalStats.sparks_count,
+      stars_count: globalStats.stars_count,
+      breathing_sessions: globalStats.breathing_sessions_count,
+      games_played: globalStats.games_played_count,
+
+      // Hebdo
+      weekly_stars_count: weeklyStats.stars_count,
+      weekly_breathing_sessions_count: weeklyStats.breathing_sessions_count,
+      weekly_games_played_count: weeklyStats.games_played_count,
+
+      // Temps en secondes (pour compatibilité)
+      total_breathing_time: totalBreathingTime, // Temps cumulé (secondes)
+      total_coherence_time: coherenceStats.totalTime, // Temps spécifique Cohérence (secondes)
+      total_meditation_time: meditationStats.totalTime, // Temps spécifique Méditation (secondes)
+
+      // Temps en minutes (pour affichage facile)
+      total_breathing_minutes: Math.round(totalBreathingTime / 60),
+      total_coherence_minutes: Math.round(coherenceStats.totalTime / 60),
+      total_meditation_minutes: Math.round(meditationStats.totalTime / 60),
+
+      // Temps HEBDOMADAIRES en secondes (pour petites valeurs)
+      weekly_breathing_time: weeklyTotalBreathingTime,
+      weekly_coherence_time: weeklyCoherenceStats.totalTime,
+      weekly_meditation_time: weeklyMeditationStats.totalTime,
+
+      // Temps HEBDOMADAIRES en minutes (pour affichage facile)
+      weekly_breathing_minutes: Math.round(weeklyTotalBreathingTime / 60),
+      weekly_coherence_minutes: Math.round(weeklyCoherenceStats.totalTime / 60),
+      weekly_meditation_minutes: Math.round(weeklyMeditationStats.totalTime / 60),
+
+      // Autres
+      days_active: uniqueDays.size,
+      current_streak: currentStreak, // 🔥 Série de jours consécutifs
+
+      // Badges ✨ NOUVEAU
+      badges: badges
+    });
+
   } catch (error) {
     console.error("Erreur dans getUserStats:", error);
     res.status(500).json({ message: "Erreur lors du calcul des statistiques", error: error.message });

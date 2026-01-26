@@ -1,5 +1,5 @@
 import express from 'express';
-import { getMeditations, addMeditation, deleteMeditation } from '../controllers/meditations.controller.js';
+import { getMeditations, addMeditation, deleteMeditation, recordSession } from '../controllers/meditations.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
@@ -18,7 +18,10 @@ router.get('/categories', (req, res) => {
 // GET /api/meditations (Public)
 router.get('/', getMeditations);
 
-// POST /api/meditations (Protégé)
+// POST /api/meditations/session - Enregistrer une session d'écoute (Historique des stats)
+router.post('/session', authMiddleware, recordSession);
+
+// POST /api/meditations (Protégé - Ajout catalogue)
 // Attend un JSON body : { title, category, duration, audio_url, ... }
 router.post('/', authMiddleware, addMeditation);
 
