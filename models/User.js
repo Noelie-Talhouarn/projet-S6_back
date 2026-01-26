@@ -48,6 +48,21 @@ const UserSchema = new mongoose.Schema({
     type: Number,
     default: 1
   },
+  // Statistiques utilisateur (Globales et Hebdomadaires)
+  stats: {
+    global: {
+      stars_count: { type: Number, default: 0 },
+      breathing_sessions_count: { type: Number, default: 0 },
+      games_played_count: { type: Number, default: 0 }
+    },
+    weekly: {
+      week_number: { type: Number, default: 0 },
+      year: { type: Number, default: 0 },
+      stars_count: { type: Number, default: 0 },
+      breathing_sessions_count: { type: Number, default: 0 },
+      games_played_count: { type: Number, default: 0 }
+    }
+  },
   // Date d'inscription de l'utilisateur
   date_inscription: {
     type: Date,

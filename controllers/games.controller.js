@@ -1,6 +1,7 @@
 import Game from '../models/Game.js';
 import GameProgress from '../models/GameProgress.js';
 
+
 // --- LISTER LES JEUX ---
 export const getGames = async (req, res) => {
     try {
@@ -49,6 +50,8 @@ export const saveProgress = async (req, res) => {
             },
             { new: true, upsert: true, setDefaultsOnInsert: true }
         );
+
+
 
         res.json({ message: "Progression sauvegardée !", progress });
     } catch (error) {

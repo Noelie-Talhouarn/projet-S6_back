@@ -1,5 +1,6 @@
 import Star from '../models/Star.js';
 
+
 // --- GET ALL STARS ---
 export const getStars = async (req, res) => {
     try {
@@ -66,6 +67,9 @@ export const createStar = async (req, res) => {
                 createdAt: newStar.createdAt
             }
         });
+
+
+
     } catch (error) {
         console.error("Erreur lors de la création de l'étoile:", error);
         res.status(500).json({ message: "Erreur lors de la création de l'étoile", error: error.message });

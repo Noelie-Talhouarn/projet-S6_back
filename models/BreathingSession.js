@@ -11,7 +11,7 @@ const BreathingSessionSchema = new mongoose.Schema({
         required: true,
         index: true, // Index pour optimiser les requêtes par utilisateur
     },
-    // Durée de la session en minutes
+    // Durée de la session en SECONDES (ex: 300 pour 5 minutes)
     duration: {
         type: Number,
         required: true,
@@ -22,6 +22,12 @@ const BreathingSessionSchema = new mongoose.Schema({
         type: String,
         enum: ['coherence_cardiaque', 'meditation', 'respiration_libre'],
         default: 'coherence_cardiaque',
+    },
+    // (Optionnel) ID de la méditation écoutée si c'est une méditation guidée
+    meditation: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Meditation',
+        required: false
     },
     // Date de la session
     createdAt: {

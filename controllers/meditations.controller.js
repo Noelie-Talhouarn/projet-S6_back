@@ -58,3 +58,39 @@ export const deleteMeditation = async (req, res) => {
         res.status(500).json({ message: "Erreur serveur", error: error.message });
     }
 };
+
+// --- RECORD SESSION (Historique) ---
+export const recordSession = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        console.log("📝 Enregistrement session reçue:", req.body);
+        const { duration, type, meditationId } = req.body;
+
+        // Validation basique
+        if (!duration) {
+            return res.status(400).json({ message: "La durée est requise." });
+        }
+
+        // Import dynamique pour éviter les dépendances circulaires si besoin
+        // (Ici c'est propre, on peut importer en haut, mais restons cohérents avec le style)
+        const BreathingSession = (await import('../models/BreathingSession.js')).default;
+
+        const newSession = new BreathingSession({
+            user: userId,
+            duration: Number(duration), // En SECONDES
+            type: type || 'meditation', // 'coherence_cardiaque' ou 'meditation'
+            meditation: meditationId || null // Lien vers la méditation du catalogue si applicable
+        });
+
+        await newSession.save();
+
+        res.status(201).json({
+            message: "Session enregistrée avec succès 🧘",
+            session: newSession
+        });
+
+    } catch (error) {
+        console.error("Erreur enregistrement session:", error);
+        res.status(500).json({ message: "Erreur lors de l'enregistrement de la session." });
+    }
+};
