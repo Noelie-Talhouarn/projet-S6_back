@@ -70,7 +70,30 @@ export const getProfile = async (req, res) => {
       email: user.email,
       date_inscription: user.date_inscription,
       avatar: user.avatar || "",
+      emotion: user.emotion || null,
     });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
+
+// --- UPDATE EMOTION ---
+export const updateEmotion = async (req, res) => {
+  try {
+    const { emotion } = req.body;
+    const allowedEmotions = ['anxious', 'tired', 'calm', 'joyful', null];
+
+    if (emotion !== undefined && !allowedEmotions.includes(emotion)) {
+      return res.status(400).json({ message: "Émotion invalide" });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
+
+    user.emotion = emotion;
+    await user.save();
+
+    res.json({ success: true, emotion: user.emotion });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
@@ -464,6 +487,42 @@ export const updateMandalaLevel = async (req, res) => {
     }
 
     res.json({ message: "Progression sauvegardée", level: user.mandalaLevel });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
+
+// --- GET PUZZLE LEVEL ---
+export const getPuzzleLevel = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('puzzleLevel');
+    if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
+
+    res.json({ level: user.puzzleLevel || 1 });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
+
+// --- UPDATE PUZZLE LEVEL ---
+export const updatePuzzleLevel = async (req, res) => {
+  try {
+    const { level } = req.body;
+
+    if (!level || typeof level !== 'number') {
+      return res.status(400).json({ message: "Le niveau doit être un nombre." });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
+
+    // On s'assure de ne pas rétrograder le niveau
+    if (level > (user.puzzleLevel || 1)) {
+      user.puzzleLevel = level;
+      await user.save();
+    }
+
+    res.json({ message: "Progression sauvegardée", level: user.puzzleLevel });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }

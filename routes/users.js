@@ -8,7 +8,10 @@ import {
     updatePreferences,
     deleteAccount,
     getMandalaLevel,
-    updateMandalaLevel
+    updateMandalaLevel,
+    getPuzzleLevel,
+    updatePuzzleLevel,
+    updateEmotion
 } from '../controllers/users.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 
@@ -51,5 +54,14 @@ router.get('/mandala', authMiddleware, getMandalaLevel);
 
 // Route: /api/users/mandala - Sauvegarder le niveau du mandala
 router.post('/mandala', authMiddleware, updateMandalaLevel);
+
+// Route: /api/users/puzzle - Récupérer le niveau du puzzle
+router.get('/puzzle', authMiddleware, getPuzzleLevel);
+
+// Route: /api/users/puzzle - Sauvegarder le niveau du puzzle
+router.post('/puzzle', authMiddleware, updatePuzzleLevel);
+
+// Route: /api/users/emotion - Mettre à jour l'émotion de l'utilisateur
+router.post('/emotion', authMiddleware, updateEmotion);
 
 export default router;
