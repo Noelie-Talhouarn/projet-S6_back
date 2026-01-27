@@ -70,7 +70,30 @@ export const getProfile = async (req, res) => {
       email: user.email,
       date_inscription: user.date_inscription,
       avatar: user.avatar || "",
+      emotion: user.emotion || null,
     });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
+
+// --- UPDATE EMOTION ---
+export const updateEmotion = async (req, res) => {
+  try {
+    const { emotion } = req.body;
+    const allowedEmotions = ['anxious', 'tired', 'calm', 'joyful', null];
+
+    if (emotion !== undefined && !allowedEmotions.includes(emotion)) {
+      return res.status(400).json({ message: "Émotion invalide" });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
+
+    user.emotion = emotion;
+    await user.save();
+
+    res.json({ success: true, emotion: user.emotion });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
@@ -128,6 +151,23 @@ export const getUserStats = async (req, res) => {
     const BreathingSession = (await import("../models/BreathingSession.js")).default;
     const GameProgress = (await import("../models/GameProgress.js")).default;
     const Star = (await import("../models/Star.js")).default;
+    const DailyVisit = (await import("../models/DailyVisit.js")).default;
+
+    // --- 0. Enregistrer la visite du jour (si pas déjà fait) ---
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const existingVisit = await DailyVisit.findOne({
+      user: userId,
+      createdAt: { $gte: todayStart, $lte: todayEnd }
+    });
+
+    if (!existingVisit) {
+      await new DailyVisit({ user: userId }).save();
+      console.log('✅ Visite quotidienne enregistrée pour le calcul du streak.');
+    }
 
     // --- 1. Calculer les statistiques globales (Total) ---
     // On compte directement les documents en base, ce qui inclut tout l'historique
@@ -225,6 +265,7 @@ export const getUserStats = async (req, res) => {
       Spark.find({ user: userId }).select('createdAt').lean(),
       BreathingSession.find({ user: userId }).select('createdAt').lean(),
       GameProgress.find({ user: userId }).select('lastPlayed').lean(),
+      DailyVisit.find({ user: userId }).select('createdAt').lean()
     ]);
 
     const uniqueDays = new Set();
@@ -251,16 +292,20 @@ export const getUserStats = async (req, res) => {
 
       console.log('🔍 Debug streak - Aujourd\'hui:', todayStr, '| Hier:', yesterdayStr);
       console.log('🔍 Debug streak - Dernier jour actif:', sortedDays[0]);
+      console.log('🔍 Debug streak - Jours actifs triés:', sortedDays);
 
       // Vérifier si l'utilisateur a été actif aujourd'hui OU hier
-      // (Si on vérifie le soir, l'utilisateur peut ne pas avoir été actif aujourd'hui)
       let checkDate;
+      let startIndex = 0;
+
       if (sortedDays[0] === todayStr) {
         checkDate = new Date(today);
         currentStreak = 1;
+        startIndex = 1; // On a déjà compté aujourd'hui, on passe au jour suivant dans la liste (qui devrait être hier)
       } else if (sortedDays[0] === yesterdayStr) {
         checkDate = new Date(yesterday);
         currentStreak = 1;
+        startIndex = 1; // On a compté hier (dernier jour actif), on passe au jour d'avant
       } else {
         // Le dernier jour actif est trop ancien, streak = 0
         currentStreak = 0;
@@ -268,9 +313,14 @@ export const getUserStats = async (req, res) => {
 
       // Compter les jours consécutifs en remontant dans le temps
       if (currentStreak > 0) {
-        for (let i = 1; i < sortedDays.length; i++) {
-          checkDate.setUTCDate(checkDate.getUTCDate() - 1);
-          const expectedDateStr = checkDate.toISOString().split('T')[0];
+        // La date qu'on s'attend à trouver à l'itération suivante est "checkDate - 1 jour"
+        let expectedDate = new Date(checkDate);
+
+        for (let i = startIndex; i < sortedDays.length; i++) {
+          expectedDate.setUTCDate(expectedDate.getUTCDate() - 1);
+          const expectedDateStr = expectedDate.toISOString().split('T')[0];
+
+          console.log(`Checking previous day. Expected: ${expectedDateStr}, Found: ${sortedDays[i]}`);
 
           if (sortedDays[i] === expectedDateStr) {
             currentStreak++;
@@ -464,6 +514,42 @@ export const updateMandalaLevel = async (req, res) => {
     }
 
     res.json({ message: "Progression sauvegardée", level: user.mandalaLevel });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
+
+// --- GET PUZZLE LEVEL ---
+export const getPuzzleLevel = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('puzzleLevel');
+    if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
+
+    res.json({ level: user.puzzleLevel || 1 });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
+
+// --- UPDATE PUZZLE LEVEL ---
+export const updatePuzzleLevel = async (req, res) => {
+  try {
+    const { level } = req.body;
+
+    if (!level || typeof level !== 'number') {
+      return res.status(400).json({ message: "Le niveau doit être un nombre." });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
+
+    // On s'assure de ne pas rétrograder le niveau
+    if (level > (user.puzzleLevel || 1)) {
+      user.puzzleLevel = level;
+      await user.save();
+    }
+
+    res.json({ message: "Progression sauvegardée", level: user.puzzleLevel });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }

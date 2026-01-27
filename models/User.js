@@ -38,13 +38,23 @@ const UserSchema = new mongoose.Schema({
       default: true,
     },
   },
-  // Ancienne préférence (conservée pour compatibilité)
   preferences_voyage: {
     type: String,
     default: null
   },
+  // Émotion actuelle de l'utilisateur
+  emotion: {
+    type: String,
+    enum: ['anxious', 'tired', 'calm', 'joyful'],
+    default: null
+  },
   // Niveau de progression du jeu Mandala
   mandalaLevel: {
+    type: Number,
+    default: 1
+  },
+  // Niveau de progression du jeu Puzzle
+  puzzleLevel: {
     type: Number,
     default: 1
   },
