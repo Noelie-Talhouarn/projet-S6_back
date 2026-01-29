@@ -554,3 +554,126 @@ export const updatePuzzleLevel = async (req, res) => {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
+
+// --- GET FAVORITES ---
+// ✨ Récupère les favoris (citations et méditations) de l'utilisateur connecté
+export const getFavorites = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('favorites');
+
+    // Si l'utilisateur n'a pas encore de favoris, on retourne des listes vides
+    const favorites = user?.favorites || { quotes: [], meditationIds: [] };
+
+    res.json({
+      quotes: favorites.quotes || [],
+      meditationIds: favorites.meditationIds || []
+    });
+  } catch (error) {
+    console.error("Erreur dans getFavorites:", error);
+    res.status(500).json({ message: "Erreur lors de la récupération des favoris", error: error.message });
+  }
+};
+
+// --- TOGGLE FAVORITE ---
+// ✨ Ajoute ou retire un favori (citation ou méditation)
+// Fonctionne comme un toggle : si présent → retire, si absent → ajoute
+export const toggleFavorite = async (req, res) => {
+  try {
+    const { type, item } = req.body;
+
+    // Validation du type
+    if (!type || !['quote', 'meditation'].includes(type)) {
+      return res.status(400).json({
+        message: "Le type doit être 'quote' ou 'meditation'"
+      });
+    }
+
+    // Validation de l'item
+    if (!item) {
+      return res.status(400).json({
+        message: "L'item est requis"
+      });
+    }
+
+    // Récupérer l'utilisateur
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur introuvable" });
+    }
+
+    // Initialiser les favoris si inexistants
+    if (!user.favorites) {
+      user.favorites = { quotes: [], meditationIds: [] };
+    }
+
+    let action = ''; // 'added' ou 'removed'
+
+    if (type === 'quote') {
+      // --- Gestion des citations favorites ---
+      // Validation spécifique pour une citation
+      if (!item.citation) {
+        return res.status(400).json({
+          message: "La citation doit contenir un champ 'citation'"
+        });
+      }
+
+      // Chercher si la citation existe déjà (comparaison par le texte)
+      const index = user.favorites.quotes.findIndex(
+        q => q.citation === item.citation
+      );
+
+      if (index >= 0) {
+        // ❌ Citation trouvée → On la retire
+        user.favorites.quotes.splice(index, 1);
+        action = 'removed';
+        console.log(`📖 Citation retirée des favoris pour l'utilisateur ${req.user.id}`);
+      } else {
+        // ✅ Citation non trouvée → On l'ajoute
+        user.favorites.quotes.push({
+          citation: item.citation,
+          auteur: item.auteur || 'Inconnu',
+          addedAt: new Date()
+        });
+        action = 'added';
+        console.log(`📖 Citation ajoutée aux favoris pour l'utilisateur ${req.user.id}`);
+      }
+
+    } else if (type === 'meditation') {
+      // --- Gestion des méditations favorites ---
+      // L'item est directement l'ID de la méditation (String ou Number)
+      const meditationId = item;
+
+      // Chercher si l'ID existe déjà
+      const index = user.favorites.meditationIds.indexOf(meditationId);
+
+      if (index >= 0) {
+        // ❌ Méditation trouvée → On la retire
+        user.favorites.meditationIds.splice(index, 1);
+        action = 'removed';
+        console.log(`🧘 Méditation ${meditationId} retirée des favoris pour l'utilisateur ${req.user.id}`);
+      } else {
+        // ✅ Méditation non trouvée → On l'ajoute
+        user.favorites.meditationIds.push(meditationId);
+        action = 'added';
+        console.log(`🧘 Méditation ${meditationId} ajoutée aux favoris pour l'utilisateur ${req.user.id}`);
+      }
+    }
+
+    // Marquer le champ comme modifié (important pour les objets imbriqués)
+    user.markModified('favorites');
+    await user.save();
+
+    // Retourner les favoris mis à jour avec l'action effectuée
+    res.json({
+      action, // 'added' ou 'removed'
+      favorites: {
+        quotes: user.favorites.quotes,
+        meditationIds: user.favorites.meditationIds
+      }
+    });
+
+  } catch (error) {
+    console.error("Erreur dans toggleFavorite:", error);
+    res.status(500).json({ message: "Erreur lors de la mise à jour des favoris", error: error.message });
+  }
+};
