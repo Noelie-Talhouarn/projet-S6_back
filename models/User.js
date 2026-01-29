@@ -58,6 +58,17 @@ const UserSchema = new mongoose.Schema({
     type: Number,
     default: 1
   },
+  // ✨ Favoris de l'utilisateur (Citations et Méditations)
+  favorites: {
+    // Citations favorites avec leur auteur et date d'ajout
+    quotes: [{
+      citation: { type: String, required: true },
+      auteur: { type: String, default: 'Inconnu' },
+      addedAt: { type: Date, default: Date.now }
+    }],
+    // IDs des méditations favorites (peut être String ou Number)
+    meditationIds: [{ type: mongoose.Schema.Types.Mixed }]
+  },
   // Statistiques utilisateur (Globales et Hebdomadaires)
   stats: {
     global: {

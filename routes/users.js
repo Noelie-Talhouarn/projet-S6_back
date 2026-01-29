@@ -11,7 +11,9 @@ import {
     updateMandalaLevel,
     getPuzzleLevel,
     updatePuzzleLevel,
-    updateEmotion
+    updateEmotion,
+    getFavorites,
+    toggleFavorite
 } from '../controllers/users.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 
@@ -63,5 +65,15 @@ router.post('/puzzle', authMiddleware, updatePuzzleLevel);
 
 // Route: /api/users/emotion - Mettre à jour l'émotion de l'utilisateur
 router.post('/emotion', authMiddleware, updateEmotion);
+
+// ========================================
+// Routes Favoris (Citations & Méditations)
+// ========================================
+
+// Route: /api/users/favorites - Récupérer les favoris de l'utilisateur
+router.get('/favorites', authMiddleware, getFavorites);
+
+// Route: /api/users/favorites - Toggle un favori (ajoute si absent, retire si présent)
+router.post('/favorites', authMiddleware, toggleFavorite);
 
 export default router;
