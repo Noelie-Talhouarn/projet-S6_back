@@ -13,7 +13,8 @@ import {
     updatePuzzleLevel,
     updateEmotion,
     getFavorites,
-    toggleFavorite
+    toggleFavorite,
+    updateAvatar
 } from '../controllers/users.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 
@@ -75,5 +76,8 @@ router.get('/favorites', authMiddleware, getFavorites);
 
 // Route: /api/users/favorites - Toggle un favori (ajoute si absent, retire si présent)
 router.post('/favorites', authMiddleware, toggleFavorite);
+
+// Route: /api/users/avatar - Mettre à jour la photo de profil
+router.patch('/avatar', authMiddleware, updateAvatar);
 
 export default router;

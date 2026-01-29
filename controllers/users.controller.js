@@ -18,7 +18,7 @@ const generateToken = (user) => {
 // --- REGISTER ---
 export const register = async (req, res) => {
   try {
-    const { nom, prenom, email, mot_de_passe } = req.body;
+    const { nom, prenom, email, mot_de_passe, avatar } = req.body;
 
     // Vérifier si l'utilisateur existe déjà
     const existingUser = await User.findOne({ email });
@@ -27,8 +27,14 @@ export const register = async (req, res) => {
     // Hasher le mot de passe
     const hashedPassword = await bcrypt.hash(mot_de_passe, 10);
 
-    // Créer et sauvegarder dans MongoDB Atlas
-    const newUser = new User({ nom, prenom, email, mot_de_passe: hashedPassword });
+    // Créer et sauvegarder avec l'avatar optionnel
+    const newUser = new User({
+      nom,
+      prenom,
+      email,
+      mot_de_passe: hashedPassword,
+      avatar: avatar || "" // Utilise l'avatar envoyé ou une chaîne vide par défaut
+    });
     await newUser.save();
 
     res.status(201).json({ message: "Utilisateur créé avec succès" });
@@ -675,5 +681,35 @@ export const toggleFavorite = async (req, res) => {
   } catch (error) {
     console.error("Erreur dans toggleFavorite:", error);
     res.status(500).json({ message: "Erreur lors de la mise à jour des favoris", error: error.message });
+  }
+};
+
+// --- UPDATE AVATAR ---
+// ✨ Met à jour la photo de profil de l'utilisateur
+export const updateAvatar = async (req, res) => {
+  try {
+    const { avatar } = req.body;
+
+    if (!avatar) {
+      return res.status(400).json({ message: "L'URL ou le chemin de l'avatar est requis" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { avatar },
+      { new: true }
+    ).select("avatar");
+
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur introuvable" });
+    }
+
+    res.json({
+      message: "Photo de profil mise à jour avec succès ✨",
+      avatar: user.avatar,
+    });
+  } catch (error) {
+    console.error("Erreur dans updateAvatar:", error);
+    res.status(500).json({ message: "Erreur lors de la mise à jour de l'avatar", error: error.message });
   }
 };
