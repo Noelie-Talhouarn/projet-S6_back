@@ -3,6 +3,8 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import User from "../models/User.js";
 import { calculateBadges } from "../utils/badges.js";
+import crypto from "crypto";
+import { sendResetPasswordEmail } from "../utils/mailer.js";
 
 /**
  * Générer un JWT (L'étincelle de connexion)
@@ -711,5 +713,76 @@ export const updateAvatar = async (req, res) => {
   } catch (error) {
     console.error("Erreur dans updateAvatar:", error);
     res.status(500).json({ message: "Erreur lors de la mise à jour de l'avatar", error: error.message });
+  }
+};
+
+// --- FORGOT PASSWORD ---
+// ✨ Génère un jeton et envoie l'e-mail de secours
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "L'email est requis." });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "Aucun compte n'est lié à cet email." });
+    }
+
+    // Créer un jeton aléatoire
+    const token = crypto.randomBytes(20).toString("hex");
+
+    // Définir l'expiration (1 heure)
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = Date.now() + 3600000;
+
+    await user.save();
+
+    // Envoyer l'email
+    await sendResetPasswordEmail(user.email, token, user.prenom);
+
+    res.json({ message: "Une lueur de secours a été envoyée ! ✨" });
+  } catch (error) {
+    console.error("❌ Détails de l'erreur forgotPassword:", error);
+    res.status(500).json({
+      message: "Erreur lors de la demande de réinitialisation.",
+      error: error.message // On renvoie l'erreur pour aider l'utilisateur à diagnostiquer
+    });
+  }
+};
+
+// --- RESET PASSWORD ---
+// ✨ Vérifie le jeton et change le mot de passe
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: "Le jeton et le nouveau mot de passe sont requis." });
+    }
+
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Le jeton est invalide ou a expiré." });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    user.mot_de_passe = hashedPassword;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+
+    await user.save();
+
+    res.json({ message: "Votre mot de passe a été réinitialisé avec succès. ✨" });
+  } catch (error) {
+    console.error("Erreur resetPassword:", error);
+    res.status(500).json({ message: "Erreur lors du changement de mot de passe." });
   }
 };

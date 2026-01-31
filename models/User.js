@@ -84,6 +84,15 @@ const UserSchema = new mongoose.Schema({
       games_played_count: { type: Number, default: 0 }
     }
   },
+  // Champs pour la réinitialisation du mot de passe (La lueur de secours)
+  resetPasswordToken: {
+    type: String,
+    default: null
+  },
+  resetPasswordExpires: {
+    type: Date,
+    default: null
+  },
   // Date d'inscription de l'utilisateur
   date_inscription: {
     type: Date,

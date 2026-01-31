@@ -14,7 +14,9 @@ import {
     updateEmotion,
     getFavorites,
     toggleFavorite,
-    updateAvatar
+    updateAvatar,
+    forgotPassword,
+    resetPassword
 } from '../controllers/users.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 
@@ -29,6 +31,12 @@ router.post('/register', register);
 
 // Route: /api/users/login
 router.post('/login', login);
+
+// Route: /api/users/forgot-password - Demander un lien de secours
+router.post('/forgot-password', forgotPassword);
+
+// Route: /api/users/reset-password - Changer le mot de passe avec le jeton
+router.post('/reset-password', resetPassword);
 
 // ========================================
 // Routes protégées (avec authentification JWT)
