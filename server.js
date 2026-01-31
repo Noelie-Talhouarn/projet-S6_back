@@ -1,6 +1,5 @@
-// server.js
+import 'dotenv/config';
 import express from "express";
-import dotenv from "dotenv";
 import cors from "cors";
 import { connectDB } from "./db.js";
 import sparkRoutes from "./routes/sparks.js";
@@ -14,7 +13,7 @@ import lueurRoutes from "./routes/lueurs.js";
 import { seedGames } from "./utils/seedGames.js";
 import { seedLueurs } from "./utils/seedLueurs.js";
 
-dotenv.config();
+
 
 const startServer = async () => {
   await connectDB();
