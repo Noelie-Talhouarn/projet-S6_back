@@ -1,4 +1,5 @@
 import Meditation from '../models/Meditation.js';
+import BreathingSession from '../models/BreathingSession.js';
 
 // --- GET ALL MEDITATIONS ---
 export const getMeditations = async (req, res) => {
@@ -71,9 +72,7 @@ export const recordSession = async (req, res) => {
             return res.status(400).json({ message: "La durée est requise." });
         }
 
-        // Import dynamique pour éviter les dépendances circulaires si besoin
-        // (Ici c'est propre, on peut importer en haut, mais restons cohérents avec le style)
-        const BreathingSession = (await import('../models/BreathingSession.js')).default;
+        // Enregistrement de la session dans la base de données
 
         const newSession = new BreathingSession({
             user: userId,

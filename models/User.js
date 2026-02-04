@@ -38,10 +38,6 @@ const UserSchema = new mongoose.Schema({
       default: true,
     },
   },
-  preferences_voyage: {
-    type: String,
-    default: null
-  },
   // Émotion actuelle de l'utilisateur
   emotion: {
     type: String,

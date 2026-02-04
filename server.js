@@ -13,8 +13,6 @@ import lueurRoutes from "./routes/lueurs.js";
 import { seedGames } from "./utils/seedGames.js";
 import { seedLueurs } from "./utils/seedLueurs.js";
 
-
-
 const startServer = async () => {
   await connectDB();
   await seedGames(); // Initialiser les jeux par défaut
