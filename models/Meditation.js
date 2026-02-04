@@ -9,7 +9,7 @@ const MeditationSchema = new mongoose.Schema({
     description: { type: String, default: '' },
     category: {
         type: String,
-        enum: ['guide', 'nature', 'musique'],
+        enum: ['nature', 'musique'],
         required: true
     },
     duration: { type: String, required: true },

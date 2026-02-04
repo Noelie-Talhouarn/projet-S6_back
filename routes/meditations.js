@@ -7,10 +7,8 @@ const router = express.Router();
 // GET /api/meditations/categories (Public)
 router.get('/categories', (req, res) => {
     const categories = [
-        { id: 'sommeil', label: 'Sommeil' },
         { id: 'nature', label: 'Nature' },
-        { id: 'musique', label: 'Musique' },
-        { id: 'guide', label: 'Guidé' }
+        { id: 'musique', label: 'Musique' }
     ];
     res.json(categories);
 });

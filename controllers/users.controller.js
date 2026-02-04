@@ -2,6 +2,11 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import User from "../models/User.js";
+import Spark from "../models/Spark.js";
+import BreathingSession from "../models/BreathingSession.js";
+import GameProgress from "../models/GameProgress.js";
+import Star from "../models/Star.js";
+import DailyVisit from "../models/DailyVisit.js";
 import { calculateBadges } from "../utils/badges.js";
 import crypto from "crypto";
 import { sendResetPasswordEmail } from "../utils/mailer.js";
@@ -153,13 +158,6 @@ export const updateProfile = async (req, res) => {
 export const getUserStats = async (req, res) => {
   try {
     const userId = req.user.id;
-
-    // Import des modèles
-    const Spark = (await import("../models/Spark.js")).default;
-    const BreathingSession = (await import("../models/BreathingSession.js")).default;
-    const GameProgress = (await import("../models/GameProgress.js")).default;
-    const Star = (await import("../models/Star.js")).default;
-    const DailyVisit = (await import("../models/DailyVisit.js")).default;
 
     // --- 0. Enregistrer la visite du jour (si pas déjà fait) ---
     const todayStart = new Date();
@@ -432,12 +430,6 @@ export const updatePreferences = async (req, res) => {
 export const deleteAccount = async (req, res) => {
   try {
     const userId = req.user.id;
-
-    // Import des modèles nécessaires
-    const Spark = (await import("../models/Spark.js")).default;
-    const BreathingSession = (await import("../models/BreathingSession.js")).default;
-    const GameProgress = (await import("../models/GameProgress.js")).default;
-    const Star = (await import("../models/Star.js")).default;
 
     // 1. Supprimer toutes les données associées à l'utilisateur
     console.log(`🗑️ Suppression des données pour l'utilisateur ${userId}...`);
